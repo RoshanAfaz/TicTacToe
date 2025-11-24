@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <div class="welcome-content">
+                <h1 class="title">Tic-Tac-Toe</h1>
+                <p class="subtitle">Online Multiplayer</p>
+                
+                <div class="input-group">
+                    <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
+                    <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div id="createRoomScreen" class="screen">
+            <div class="modal">
+                <h2>Create Room</h2>
+                <div class="input-group">
+                    <input type="text" id="createRoomCode" placeholder="Room Code (e.g., ABC123)" maxlength="10">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="createRoom()">Create</button>
+                    <button class="btn btn-cancel" onclick="showWelcome()">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div id="joinRoomScreen" class="screen">
+            <div class="modal">
+                <h2>Join Room</h2>
+                <div class="input-group">
+                    <input type="text" id="joinRoomCode" placeholder="Enter Room Code">
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="joinRoom()">Join</button>
+                    <button class="btn btn-cancel" onclick="showWelcome()">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waitingScreen" class="screen">
+            <div class="waiting-content">
+                <h2>Waiting for Opponent</h2>
+                <p id="roomCodeDisplay"></p>
+                <div class="spinner"></div>
+                <p class="player-info" id="waitingInfo"></p>
+                <button class="btn btn-cancel" onclick="leaveRoom()">Leave Room</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <div class="game-container">
+                <div class="game-header">
+                    <div class="player-info">
+                        <span id="player1Name"></span>
+                        <span id="player1Symbol" class="symbol">(X)</span>
+                    </div>
+                    <div class="game-status">
+                        <p id="turnIndicator"></p>
+                        <p id="gameMessage"></p>
+                    </div>
+                    <div class="player-info">
+                        <span id="player2Symbol" class="symbol">(O)</span>
+                        <span id="player2Name"></span>
+                    </div>
+                </div>
+
+                <div class="board">
+                    <div class="cell" data-index="0"></div>
+                    <div class="cell" data-index="1"></div>
+                    <div class="cell" data-index="2"></div>
+                    <div class="cell" data-index="3"></div>
+                    <div class="cell" data-index="4"></div>
+                    <div class="cell" data-index="5"></div>
+                    <div class="cell" data-index="6"></div>
+                    <div class="cell" data-index="7"></div>
+                    <div class="cell" data-index="8"></div>
+                </div>
+
+                <div class="game-controls">
+                    <button class="btn btn-primary" id="restartBtn" onclick="restartGame()" style="display: none;">Play Again</button>
+                    <button class="btn btn-cancel" onclick="leaveRoom()">Leave Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Screen -->
+        <div id="errorScreen" class="screen">
+            <div class="modal">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+                <button class="btn btn-primary" onclick="showWelcome()">Back to Home</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti"></canvas>
+
+    <script src="confetti.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
