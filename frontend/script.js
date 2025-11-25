@@ -1,6 +1,145 @@
-const socket = (typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER)
-    ? io(window.SOCKET_SERVER)
-    : io();
+let socket = null;
+
+// Probe same-origin Socket.IO endpoint; if it returns 404 and a SOCKET_SERVER override
+// exists, connect to that instead. This helps when frontend is hosted on Vercel
+// and the socket backend runs on Render.
+async function initSocket() {
+    let useUrl = null;
+    try {
+        const res = await fetch('/socket.io/?EIO=4&transport=polling', { method: 'GET' });
+        if (res.status === 404 && typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER) {
+            useUrl = window.SOCKET_SERVER;
+        }
+    } catch (e) {
+        // If fetch failed (CORS or network), fall back to SOCKET_SERVER if provided
+        if (typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER) {
+            useUrl = window.SOCKET_SERVER;
+        }
+    }
+
+    socket = useUrl ? io(useUrl) : io();
+    attachSocketHandlers(socket);
+}
+
+function attachSocketHandlers(s) {
+    // roomCreated
+    s.on('roomCreated', (data) => {
+        gameState.playerSymbol = data.symbol;
+        gameState.roomCode = data.roomCode;
+        
+        document.getElementById('roomCodeDisplay').textContent = `Room Code: ${data.roomCode}`;
+        document.getElementById('waitingInfo').textContent = `You are ${data.symbol}. Waiting for opponent...`;
+        
+        showScreen('waitingScreen');
+    });
+
+    // playerJoined
+    s.on('playerJoined', (data) => {
+        gameState.opponentName = data.playerName;
+        gameState.playerSymbol = data.playerSymbol;
+        
+        document.getElementById('waitingInfo').textContent = `${data.playerName} joined! Starting game...`;
+    });
+
+    // gameStarted
+    s.on('gameStarted', (data) => {
+        gameState.gameStarted = true;
+        gameState.board = data.board;
+        gameState.currentTurn = data.currentTurn;
+        
+        const player1Symbol = data.players[0].symbol;
+        const player1Name = data.players[0].name;
+        
+        const player2Symbol = player1Symbol === 'X' ? 'O' : 'X';
+        const player2Name = data.players[1].name;
+        
+        if (gameState.playerSymbol === 'X') {
+            document.getElementById('player1Name').textContent = gameState.playerName;
+            document.getElementById('player1Symbol').textContent = '(X)';
+            document.getElementById('player2Name').textContent = gameState.opponentName;
+            document.getElementById('player2Symbol').textContent = '(O)';
+        } else {
+            document.getElementById('player1Name').textContent = gameState.opponentName;
+            document.getElementById('player1Symbol').textContent = '(X)';
+            document.getElementById('player2Name').textContent = gameState.playerName;
+            document.getElementById('player2Symbol').textContent = '(O)';
+        }
+        
+        renderBoard();
+        updateTurnIndicator();
+        showScreen('gameScreen');
+    });
+
+    // moveMade
+    s.on('moveMade', (data) => {
+        gameState.board = data.board;
+        gameState.currentTurn = data.nextTurn;
+        
+        renderBoard();
+        updateTurnIndicator();
+    });
+
+    // gameWon
+    s.on('gameWon', (data) => {
+        gameState.winner = data.winner;
+        gameState.gameOver = true;
+        
+        updateTurnIndicator();
+        showWinnerCells(data.winningPattern);
+        
+        if (data.winner === gameState.playerSymbol) {
+            confetti.trigger();
+        }
+        
+        document.getElementById('restartBtn').style.display = 'inline-block';
+    });
+
+    // gameDraw
+    s.on('gameDraw', () => {
+        gameState.gameOver = true;
+        gameState.winner = null;
+        
+        updateTurnIndicator();
+        document.getElementById('restartBtn').style.display = 'inline-block';
+    });
+
+    // gameRestarted
+    s.on('gameRestarted', (data) => {
+        gameState.board = data.board;
+        gameState.currentTurn = data.currentTurn;
+        gameState.gameOver = false;
+        gameState.winner = null;
+        
+        renderBoard();
+        updateTurnIndicator();
+        document.getElementById('restartBtn').style.display = 'none';
+    });
+
+    // roomError
+    s.on('roomError', (message) => {
+        document.getElementById('errorMessage').textContent = message;
+        showScreen('errorScreen');
+    });
+
+    // playerDisconnected
+    s.on('playerDisconnected', () => {
+        gameState.gameStarted = false;
+        document.getElementById('errorMessage').textContent = 'Your opponent disconnected. Game ended.';
+        showScreen('errorScreen');
+    });
+
+    // connection events
+    s.on('connect', () => {
+        console.log('Connected to server');
+    });
+
+    s.on('disconnect', () => {
+        console.log('Disconnected from server');
+    });
+}
+
+// Initialize connection
+initSocket();
 
 let gameState = {
     roomCode: null,
