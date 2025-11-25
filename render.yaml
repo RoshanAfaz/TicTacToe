@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: tictactoe-backend
-    runtime: node
-    plan: free
-    buildCommand: bash build.sh
-    startCommand: cd backend && npm start
