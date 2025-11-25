@@ -212,6 +212,16 @@ function getWinningPattern(board) {
 }
 
 const PORT = process.env.PORT || 3000;
+// Handle server errors (for example: port already in use)
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. \n` +
+      `Either stop the process using that port or run the app with a different PORT (e.g. $env:PORT=3001 in PowerShell).`);
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
