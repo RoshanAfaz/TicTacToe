@@ -1,4 +1,6 @@
-const socket = io();
+const socket = (typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER)
+    ? io(window.SOCKET_SERVER)
+    : io();
 
 let gameState = {
     roomCode: null,
