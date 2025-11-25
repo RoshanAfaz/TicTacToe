@@ -6,18 +6,47 @@ let socket = null;
 async function initSocket() {
     let useUrl = null;
     try {
+        console.log('[socket] Probing same-origin /socket.io endpoint...');
         const res = await fetch('/socket.io/?EIO=4&transport=polling', { method: 'GET' });
+        console.log('[socket] probe status:', res.status);
         if (res.status === 404 && typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER) {
             useUrl = window.SOCKET_SERVER;
+            console.log('[socket] probe 404 -> will use SOCKET_SERVER override:', useUrl);
         }
     } catch (e) {
+        console.warn('[socket] probe failed:', e);
         // If fetch failed (CORS or network), fall back to SOCKET_SERVER if provided
         if (typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER) {
             useUrl = window.SOCKET_SERVER;
+            console.log('[socket] fetch error -> will use SOCKET_SERVER override:', useUrl);
         }
     }
 
-    socket = useUrl ? io(useUrl) : io();
+    const initialUrl = useUrl;
+    console.log('[socket] initial connection URL:', initialUrl || '(same-origin)');
+    socket = initialUrl ? io(initialUrl) : io();
+    let triedFallback = false;
+
+    // If the initial connection errors, try the SOCKET_SERVER fallback (once).
+    socket.on('connect_error', (err) => {
+        console.warn('[socket] connect_error:', err && err.message ? err.message : err);
+        if (!triedFallback && typeof window.SOCKET_SERVER !== 'undefined' && window.SOCKET_SERVER) {
+            const fallbackUrl = window.SOCKET_SERVER;
+            // If we already used the fallback as initial, don't loop
+            if (!initialUrl || initialUrl !== fallbackUrl) {
+                console.log('[socket] attempting fallback to SOCKET_SERVER:', fallbackUrl);
+                try {
+                    socket.close();
+                } catch (closeErr) {
+                    console.warn('[socket] error closing socket before fallback:', closeErr);
+                }
+                triedFallback = true;
+                socket = io(fallbackUrl);
+                attachSocketHandlers(socket);
+            }
+        }
+    });
+
     attachSocketHandlers(socket);
 }
 
