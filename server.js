@@ -212,6 +212,12 @@ function getWinningPattern(board) {
 }
 
 const PORT = process.env.PORT || 3000;
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Handle server errors (for example: port already in use)
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
